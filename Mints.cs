@@ -28,7 +28,7 @@ namespace thelost
     public static class CustomTemplates
     {
         public static CreatureTemplate.Type MintLizard = new(nameof(MintLizard), true);
-        public static CreatureTemplate.Type Rotrat = new(nameof(Rotrat), true);
+       public static CreatureTemplate.Type Rotrat = new(nameof(Rotrat), true);
         public static void UnregisterValues()
         {
             if(MintLizard != null)
@@ -46,7 +46,7 @@ namespace thelost
     public static class SandboxUnlockID
     {
         public static MultiplayerUnlocks.SandboxUnlockID MintLiz = new(nameof(MintLiz), true);
-        public static MultiplayerUnlocks.SandboxUnlockID Rotrat = new(nameof(Rotrat), true);
+       public static MultiplayerUnlocks.SandboxUnlockID Rotrat = new(nameof(Rotrat), true);
         public static void UnregisterValues()
         {
             if(MintLiz != null)

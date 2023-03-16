@@ -1,5 +1,5 @@
 ﻿using BepInEx;
-using SlugBase.Features;
+
 using static SlugBase.Features.FeatureTypes;
 using UnityEngine;
 using RWCustom;
@@ -13,6 +13,8 @@ using Menu.Remix.MixedUI;
 using Fisobs.Core;
 using System.Reflection;
 using MonoMod.RuntimeDetour;
+using SlugBase.Features;
+using MoreSlugcats;
 
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -34,6 +36,7 @@ namespace thelost
 
         private void Awake()
         {
+            
             // Plugin startup logic
             Logger.LogInfo("miros cat when?");
 
@@ -46,7 +49,7 @@ namespace thelost
             On.PlayerGraphics.AddToContainer += whiskercontainer;
             On.PlayerGraphics.InitiateSprites += funnytailwhiskerinit;
             On.Player.ctor += addondata;
-            On.Player.Update += LCcaller; // very not finished!
+            //On.Player.Update += LCcaller; // very not finished!
             On.PlayerGraphics.ctor += whiskersetup;
             On.PlayerGraphics.Update += whiskerupdate;
             try
@@ -56,9 +59,17 @@ namespace thelost
             {
                 Logger.LogError(ex);
             }
-                
+            try
+            {
                 Content.Register(new mintcritob());
+                Content.Register(new rotratcritob());
+            } catch(Exception ex)
+            {
+                Logger.LogError(ex);
+            }
+
         }
+
 
         public delegate Color orig_OverseerMainColor(OverseerGraphics self);
         public static Color OverseerGraphics_MainColor_get(orig_OverseerMainColor orig, OverseerGraphics self)
@@ -340,14 +351,14 @@ namespace thelost
         }
         private void addondata(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
         {
-            orig.Invoke(self, abstractCreature, world);
+            orig(self, abstractCreature, world);
 
 
         }
 
         private void funnytailwhiskerinit(On.PlayerGraphics.orig_InitiateSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
-            orig.Invoke(self, sLeaser, rCam);
+            orig(self, sLeaser, rCam);
             if (gilled.TryGet(self.owner as Player,out bool gills) && gills)
             {
                 
@@ -541,7 +552,7 @@ namespace thelost
 
         void whiskercontainer(On.PlayerGraphics.orig_AddToContainer orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
-            orig.Invoke(self, sLeaser, rCam, newContatiner);
+            orig(self, sLeaser, rCam, newContatiner);
             
             if (gilled.TryGet(self.player, out bool gillval) && gillval && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data) && sLeaser.sprites.Length > 13)
             {
@@ -580,7 +591,7 @@ namespace thelost
         void whiskerDraw(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             
-            orig.Invoke(self, sLeaser, rCam, timeStacker, camPos);
+            orig(self, sLeaser, rCam, timeStacker, camPos);
             if (gilled.TryGet(self.player, out bool gillval) && gillval && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data))
             {
                 //oh god i need to rewrite all of this into one for loop.
@@ -603,6 +614,7 @@ namespace thelost
                             vector.x += 2f;
                         }
                         var spine = self.SpinePosition(0.8f, timeStacker);
+                      
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].x = vector.x - camPos.x;
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].y = vector.y - camPos.y;
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].rotation = Custom.AimFromOneVectorToAnother(vector, Vector2.Lerp(data.tailScales[index].lastPos, data.tailScales[index].pos, timeStacker)) + Custom.VecToDeg(spine.dir);
