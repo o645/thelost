@@ -168,13 +168,45 @@ namespace thelost
             On.LizardGraphics.DynamicBodyColor += mintcamo;
             On.LizardBreeds.BreedTemplate_Type_CreatureTemplate_CreatureTemplate_CreatureTemplate_CreatureTemplate += mintbreed;
             Hook vishook = new Hook(typeof(Lizard).GetProperty("VisibilityBonus", BindingFlags.Public | BindingFlags.Instance).GetGetMethod(), typeof(minthooks).GetMethod("Lizard_VisibilityBonus_get", BindingFlags.Public | BindingFlags.Static));
-            On.LizardGraphics.HeadColor += ihatethisstupidheadcolor;
+            On.LizardGraphics.HeadColor += ihateselfstupidheadcolor;
+            On.LizardCosmetics.TailFin.DrawSprites += camotailfin;
+            On.LizardCosmetics.SpineSpikes.DrawSprites += camospines;
         }
 
-        private Color ihatethisstupidheadcolor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
+        private void camospines(On.LizardCosmetics.SpineSpikes.orig_DrawSprites orig, LizardCosmetics.SpineSpikes self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            orig(self, sLeaser, rCam, timeStacker, camPos);
+            if (self.lGraphics.lizard.Template.type == CustomTemplates.MintLizard)
+            {
+                for (int i = self.startSprite; i < self.startSprite + self.bumps; i++)
+                {
+                    float f = Mathf.Lerp(0.05f, self.spineLength / self.lGraphics.BodyAndTailLength, Mathf.InverseLerp((float)self.startSprite, (float)(self.startSprite + self.bumps - 1), (float)i));
+                    sLeaser.sprites[i].color = self.lGraphics.BodyColor(f);
+                }
+            }
+        }
+
+        private void camotailfin(On.LizardCosmetics.TailFin.orig_DrawSprites orig, LizardCosmetics.TailFin self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            orig(self, sLeaser, rCam, timeStacker, camPos);
+            if (self.lGraphics.lizard.Template.type == CustomTemplates.MintLizard)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    int num = i * self.bumps;
+                    for(int j = self.startSprite; j < self.startSprite+ self.bumps; j++)
+                    {
+                        float f = Mathf.Lerp(0.05f, self.spineLength / self.lGraphics.BodyAndTailLength, Mathf.InverseLerp((float)self.startSprite, (float)(self.startSprite + self.bumps - 1), (float)j));
+                        sLeaser.sprites[j + num].color = self.lGraphics.BodyColor(f);
+                    }
+                }
+            }
+        }
+
+        private Color ihateselfstupidheadcolor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
         {
             Color res = orig(self, timeStacker);
-            if(self.lizard.Template.type == CustomTemplates.MintLizard) //because i couldn't get the stupid headcolor get hooks working we're doing this i guess!
+            if(self.lizard.Template.type == CustomTemplates.MintLizard) //because i couldn't get the stupid headcolor get hooks working we're doing self i guess!
             {
                 if (self.whiteFlicker > 0 && (self.whiteFlicker > 15 || self.everySecondDraw))
                 {
