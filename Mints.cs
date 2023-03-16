@@ -343,19 +343,28 @@ namespace thelost
                 num = self.AddCosmetic(num, new LizardCosmetics.Whiskers(self, num));
                 if(Random.value < 0.4f)
                 {
-
-                    num = self.AddCosmetic(num, new LizardCosmetics.LongHeadScales(self, num));
+                    var e = new LizardCosmetics.LongHeadScales(self, num);
+                    e.colored = false;
+                    e.numberOfSprites = e.scalesPositions.Length;
+                    num = self.AddCosmetic(num,e);
                     
                     
                 }
                 if(Random.value < 0.2f)
                 {
-                    num = self.AddCosmetic(num, new LizardCosmetics.SpineSpikes(self, num));
+                    var e = new LizardCosmetics.SpineSpikes(self, num);
+                    e.colored = 0;
+                    e.numberOfSprites = e.bumps;
+
+                    num = self.AddCosmetic(num, e);
                     
                 }
                 if(Random.value < 0.8f)
                 {
-                    num = self.AddCosmetic(num, new LizardCosmetics.TailFin(self, num));
+                    var e = new LizardCosmetics.TailFin(self, num);
+                    e.colored = false;
+                    e.numberOfSprites = e.bumps * 2;
+                    num = self.AddCosmetic(num, e);
                 }
                 
                 Random.state = state;
