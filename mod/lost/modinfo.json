@@ -1,0 +1,15 @@
+{
+	"id": "thelost",
+	"name": "The Lost",
+	"version": "1.0.1",
+	"hide_version": false,
+	"authors": "Leo",
+	"description": "A little lost slugcat, exploring a harsh world. <LINE> Currently a WIP.",
+	"requirements": ["moreslugcats","slime-cubed.slugbase"],
+	"requirements_names": ["More Slugcats Expansion","Slugbase"],
+      "Tags": [
+    "Campaigns",
+    "Game Mechanics"
+  ],
+	"checksum_override_version": false
+}

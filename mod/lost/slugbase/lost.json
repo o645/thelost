@@ -1,0 +1,43 @@
+{
+"id": "thelost",
+"name":"The Lost",
+"description":"Lost in a harsh world.",
+"features":{
+    "color": "DB802B",
+    "custom_colors": [
+		{ "name": "Body", "story": "220C03", "arena": [ "080500", "390001", "010025", "092B00" ] },
+		{ "name": "Eyes", "story": "DB802B", "arena": [ "10FAFF", "F10008", "0053BD", "39DD00" ] },
+        {"name": "Gills","story": "000000"}
+	  ],
+	"auto_grab_batflies": false,
+"tunnel_speed": 2.0,
+"climb_speed": 2.0,
+"walk_speed":0.9,
+"crouch_stealth":1,
+"throw_skill":1,
+"lung_capacity": 0.8,
+"has_dreams": true,
+	"diet":{
+		"base": "White",
+		"corpses": 1,
+		"meat": 0.5,
+		"plants": 0.25
+	},
+	"guide_overseer":4,
+		"karma":0,
+		"karma_cap":9,
+		"perma_unlock_gates": false,
+		"food_min": 6,
+		"food_max": 8,
+	"start_room":"SB_S06",
+	"select_menu_scene": "Slugcat_Lost",
+	"world_state":"Rivulet",
+    "shock_resist": true,
+    "lizardhiss": true,
+    "shockattack": true,
+    "sporepuffs_hurt": true,
+    "deercaller": true,
+    "gilled": true,
+},
+
+}

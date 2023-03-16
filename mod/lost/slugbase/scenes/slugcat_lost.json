@@ -1,0 +1,11 @@
+{
+  "id": "Slugcat_Lost",
+  "scene_folder": "slugbase/scenes/Slugcat_Lost",
+  "images": [
+     {"name": "centicatHQ","pos":[350,150],"depth":2.8,"shader": "Basic"}
+  ],
+  "idle_depths": [2.3, 2.9],
+  "glow_pos": [730, 335],
+  "mark_pos": [740, 575],
+  "select_menu_pos": [-10, 100],
+}

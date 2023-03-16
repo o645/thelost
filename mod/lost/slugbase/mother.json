@@ -1,0 +1,45 @@
+{
+"id": "themother",
+"name":"The Mother",
+"description":"Protect your kin",
+"features":{
+    "color": "eee8e6",
+    "custom_colors": [
+		{ "name": "Body", "story": "eee8e6" },
+		{ "name": "Eyes", "story": "222222" },
+        {"name": "Pup 1","story": "e6d6c7"},
+        {"name": "Pup 1", "story": "8c9caa"}
+	  ],
+	"auto_grab_batflies": true,
+    "weight":1.4,
+"tunnel_speed": 0.8,
+"climb_speed": 1.0,
+"walk_speed":2.0,
+"crouch_stealth":2,
+"throw_skill":2,
+"lung_capacity": 1,
+    "loudness":0.8,
+"has_dreams": false,
+    "alignments":{
+        "Scavengers":{"like": 2.0,"strength": 0.5},
+    },
+	"diet":{
+		"base": "White",
+		"corpses": 1,
+		"meat": 0.5,
+		"plants": 2
+	},
+    "can_maul": true,
+    "back_spear": true,
+	"guide_overseer":4,
+		"karma":0,
+		"karma_cap":9,
+		"perma_unlock_gates": false,
+		"food_min": 4,
+		"food_max": 8,
+	"start_room":"SU_S05",
+	"select_menu_scene": "Slugcat_Mother",
+	"world_state":["Saint","Spear","Red"],
+},
+
+}
