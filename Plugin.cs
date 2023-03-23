@@ -1,20 +1,18 @@
 ﻿using BepInEx;
-
-using static SlugBase.Features.FeatureTypes;
-using UnityEngine;
+using Fisobs.Core;
+using Menu.Remix.MixedUI;
+using MonoMod.RuntimeDetour;
 using RWCustom;
+using SlugBase.Features;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using Random = UnityEngine.Random;
-using System.Security.Permissions;
-using System.Security;
-using Menu.Remix.MixedUI;
-using Fisobs.Core;
 using System.Reflection;
-using MonoMod.RuntimeDetour;
-using SlugBase.Features;
-using MoreSlugcats;
+using System.Runtime.CompilerServices;
+using System.Security;
+using System.Security.Permissions;
+using UnityEngine;
+using static SlugBase.Features.FeatureTypes;
+using Random = UnityEngine.Random;
 
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -36,7 +34,7 @@ namespace thelost
 
         private void Awake()
         {
-            
+
             // Plugin startup logic
             Logger.LogInfo("miros cat when?");
 
@@ -55,7 +53,8 @@ namespace thelost
             try
             {
                 Hook overseercolorhook = new Hook(typeof(OverseerGraphics).GetProperty("MainColor", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(), typeof(Plugin).GetMethod("OverseerGraphics_MainColor_get", BindingFlags.Static | BindingFlags.Public));
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.LogError(ex);
             }
@@ -63,19 +62,20 @@ namespace thelost
             {
                 Content.Register(new mintcritob());
                 Content.Register(new rotratcritob());
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.LogError(ex);
             }
 
+            
         }
-
 
         public delegate Color orig_OverseerMainColor(OverseerGraphics self);
         public static Color OverseerGraphics_MainColor_get(orig_OverseerMainColor orig, OverseerGraphics self)
         {
             Color res = orig(self);
-            if((self.overseer.abstractCreature.abstractAI as OverseerAbstractAI).ownerIterator == 69)
+            if ((self.overseer.abstractCreature.abstractAI as OverseerAbstractAI).ownerIterator == 69)
             {
                 res = new Color(1f, 0.584f, 0.109f);
             }
@@ -102,19 +102,19 @@ namespace thelost
         private void whiskerupdate(On.PlayerGraphics.orig_Update orig, PlayerGraphics self)
         {
             orig(self);
-            if(gilled.TryGet(self.player,out bool value) && value && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data))
+            if (gilled.TryGet(self.player, out bool value) && value && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data))
             {
                 int index = 0;
                 for (int i = 0; i < 2; i++)
                 {
-                    for(int j = 0; j<3; j++)
+                    for (int j = 0; j < 3; j++)
                     {
                         Vector2 pos = self.tail[2].pos;
                         Vector2 pos2 = self.tail[3].pos;
                         float num = 0f;
                         float num2 = 90f;
                         int num3 = index % (data.tailScales.Length / 2);
-                        float num4 = num2 / (float)(data.tailScales.Length/2);
+                        float num4 = num2 / (float)(data.tailScales.Length / 2);
                         if (i == 1)
                         {
                             pos.x += 5f;
@@ -199,6 +199,7 @@ namespace thelost
         private void whiskersetup(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
         {
             orig(self, ow);
+
             if (gilled.TryGet(self.player, out bool value) && value)
             {
                 tailwhiskerstorage.Add(self.player, new Whiskerdata(self.player));
@@ -206,14 +207,14 @@ namespace thelost
                 for (int i = 0; i < data.tailScales.Length; i++)
                 {
                     data.tailScales[i] = new Whiskerdata.Scale(self);
-                    data.tailpositions[i] = new Vector2((i<data.tailScales.Length/2 ? 0.7f : -0.7f),0.28f);
+                    data.tailpositions[i] = new Vector2((i < data.tailScales.Length / 2 ? 0.7f : -0.7f), 0.28f);
 
                 }
-                for(int i = 0; i < data.headScales.Length; i++)
+                for (int i = 0; i < data.headScales.Length; i++)
                 {
                     data.headScales[i] = new Whiskerdata.Scale(self);
-                    data.headpositions[i] = new Vector2((i < data.headScales.Length / 2 ? 0.7f : -0.7f), i==1 ? 0.035f : 0.026f);
-                    
+                    data.headpositions[i] = new Vector2((i < data.headScales.Length / 2 ? 0.7f : -0.7f), i == 1 ? 0.035f : 0.026f);
+
                 }
 
 
@@ -230,81 +231,81 @@ namespace thelost
         {
             orig(self, eu);
             Player.InputPackage inputPackage = RWInput.PlayerInput(self.playerState.playerNumber, self.room.game.rainWorld);
-            if(inputPackage.mp && inputPackage.jmp && lccooldown == 0)
+            if (inputPackage.mp && inputPackage.jmp && lccooldown == 0)
             {
 
-                    lccooldown = 400;
-                    self.room.AddObject(new NeuronSpark(new Vector2(self.bodyChunks[0].pos.x, self.bodyChunks[0].pos.y + 40f)));
-                
-                    if (Speaking == false)
+                lccooldown = 400;
+                self.room.AddObject(new NeuronSpark(new Vector2(self.bodyChunks[0].pos.x, self.bodyChunks[0].pos.y + 40f)));
+
+                if (Speaking == false)
+                {
+
+                    WorldCoordinate worldC = new WorldCoordinate(self.room.world.offScreenDen.index, -1, -1, 0);
+                    LCOverseer = new AbstractCreature(self.room.game.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.Overseer), null, worldC, new EntityID(-1, 5));
+                    self.room.world.GetAbstractRoom(worldC).entitiesInDens.Add(LCOverseer);
+                    LCOverseer.ignoreCycle = true;
+                    (LCOverseer.abstractAI as OverseerAbstractAI).spearmasterLockedOverseer = true;
+                    (LCOverseer.abstractAI as OverseerAbstractAI).SetAsPlayerGuide(69);
+                    (LCOverseer.abstractAI as OverseerAbstractAI).BringToRoomAndGuidePlayer(self.room.abstractRoom.index);
+
+                    Logger.LogInfo("Called overseer. now trying to converse!");
+                    self.room.game.cameras[0].hud.InitDialogBox();
+                    int rng = Random.Range(0, 3);
+                    switch (rng)
                     {
-
-                        WorldCoordinate worldC = new WorldCoordinate(self.room.world.offScreenDen.index, -1, -1, 0);
-                         LCOverseer = new AbstractCreature(self.room.game.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.Overseer), null, worldC, new EntityID(-1, 5));
-                        self.room.world.GetAbstractRoom(worldC).entitiesInDens.Add(LCOverseer);
-                        LCOverseer.ignoreCycle = true;
-                        (LCOverseer.abstractAI as OverseerAbstractAI).spearmasterLockedOverseer = true;
-                        (LCOverseer.abstractAI as OverseerAbstractAI).SetAsPlayerGuide(69);
-                        (LCOverseer.abstractAI as OverseerAbstractAI).BringToRoomAndGuidePlayer(self.room.abstractRoom.index);
-                    
-                        Logger.LogInfo("Called overseer. now trying to converse!");
-                        self.room.game.cameras[0].hud.InitDialogBox();
-                        int rng = Random.Range(0, 3);
-                        switch (rng)
-                        {
-                            case 0:
-                                currentDialog.Add("Hello there, little one!");
-                                break;
-                            case 1:
+                        case 0:
+                            currentDialog.Add("Hello there, little one!");
+                            break;
+                        case 1:
                             currentDialog.Add("You called?");
-                                break;
-                            case 2:
+                            break;
+                        case 2:
                             currentDialog.Add("What is it, little one?");
-                                break;
-                            default:
+                            break;
+                        default:
                             currentDialog.Add("Yes, little one?");
-                                break;
-                        }
+                            break;
+                    }
 
-                        if (self.grasps[0] != null)
+                    if (self.grasps[0] != null)
+                    {
+                        AbstractPhysicalObject.AbstractObjectType item = self.grasps[0].grabbed.abstractPhysicalObject.type;
+                        if (item == AbstractPhysicalObject.AbstractObjectType.Spear)
                         {
-                            AbstractPhysicalObject.AbstractObjectType item = self.grasps[0].grabbed.abstractPhysicalObject.type;
-                            if (item == AbstractPhysicalObject.AbstractObjectType.Spear)
-                            {
                             currentDialog.Add("Oh! Looks to be a sharpened piece of rebar.");
                             currentDialog.Add("I suppose this is broken off of the buildings nearby little one?");
 
-                            }
-                            else if (item == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)
-                            {
+                        }
+                        else if (item == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)
+                        {
                             currentDialog.Add("Oh, be careful with that little one!");
                             currentDialog.Add("If you aren't careful, you might cause it to explode!");
                             currentDialog.Add("As fun as that sounds, it would not be so fun for you~");
-                            }
-                            else if (item == AbstractPhysicalObject.AbstractObjectType.Rock)
-                            {
+                        }
+                        else if (item == AbstractPhysicalObject.AbstractObjectType.Rock)
+                        {
                             currentDialog.Add("Hmm? Apologises little one, but there isn't much i can say about this!");
                             currentDialog.Add("It is just a simple piece of rubbish.");
 
-                            }
-                            else if (item == AbstractPhysicalObject.AbstractObjectType.DangleFruit)
-                            {
+                        }
+                        else if (item == AbstractPhysicalObject.AbstractObjectType.DangleFruit)
+                        {
                             currentDialog.Add("Oh! This is a bluefruit! Not particularly filling for you, but it'll do in a pinch!");
-                            }
-                            else if (item == MoreSlugcats.MoreSlugcatsEnums.AbstractObjectType.JokeRifle)
-                            {
+                        }
+                        else if (item == MoreSlugcats.MoreSlugcatsEnums.AbstractObjectType.JokeRifle)
+                        {
                             currentDialog.Add("... Lost one, how in the world did you get that?");
-                            }
-                            else
-                            {
-                            currentDialog.Add("Sorry little one, my creator hasn't programmed this item into me.");
-                            currentDialog.Add("Probably too distracted thinking about poleplant cat...");
-                            }
-
                         }
                         else
                         {
-                            Region region = self.room.abstractRoom.world.region;
+                            currentDialog.Add("Sorry little one, my creator hasn't programmed this item into me.");
+                            currentDialog.Add("Probably too distracted thinking about poleplant cat...");
+                        }
+
+                    }
+                    else
+                    {
+                        Region region = self.room.abstractRoom.world.region;
                         if (region.name == "UW" && self.room.abstractRoom.subregionName == "Underhang")
                         {
                             currentDialog.Add("... That's a rather high drop!");
@@ -316,14 +317,14 @@ namespace thelost
                             //generic dialog here.
                             currentDialog.Add("Are you lost again?");
                         }
-                        }
+                    }
                     Speaking = true;
                 }
 
             }
-            if(Speaking == true)
+            if (Speaking == true)
             {
-                if(LCOverseer != null && LCOverseer.realizedCreature != null)
+                if (LCOverseer != null && LCOverseer.realizedCreature != null)
                 {
                     if (LCOverseer.realizedCreature?.room == self.room)
                     {
@@ -340,9 +341,9 @@ namespace thelost
                     }
                 }
             }
-            if(lccooldown > 0)
+            if (lccooldown > 0)
             {
-                if(lccooldown > 350)
+                if (lccooldown > 350)
                 {
                     (self.graphicsModule as PlayerGraphics).head.vel += Custom.RNV() * (0.8f / -80f);
                 }
@@ -353,15 +354,15 @@ namespace thelost
         {
             orig(self, abstractCreature, world);
 
-
+            
         }
 
         private void funnytailwhiskerinit(On.PlayerGraphics.orig_InitiateSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
             orig(self, sLeaser, rCam);
-            if (gilled.TryGet(self.owner as Player,out bool gills) && gills)
+            if (gilled.TryGet(self.owner as Player, out bool gills) && gills)
             {
-                
+
                 tailwhiskerstorage.TryGetValue(self.player, out var thedata);
                 thedata.initialtailwhiskerloc = sLeaser.sprites.Length;
                 thedata.initialfacewhiskerloc = sLeaser.sprites.Length + 6;
@@ -376,12 +377,12 @@ namespace thelost
                         sLeaser.sprites[thedata.tailwhiskersprite(i, j)].anchorY = 0.1f;
                     }
                 }
-                for(int i= 0; i < 2; i++)
+                for (int i = 0; i < 2; i++)
                 {
-                    for(int j = 0; j<2; j++)
+                    for (int j = 0; j < 2; j++)
                     {
                         sLeaser.sprites[thedata.facewhiskersprite(i, j)] = new FSprite(thedata.facesprite);
-                       
+
                         sLeaser.sprites[thedata.facewhiskersprite(i, j)].scaleY = 10f / Futile.atlasManager.GetElementWithName(thedata.sprite).sourcePixelSize.y;
                         sLeaser.sprites[thedata.facewhiskersprite(i, j)].anchorY = 0.1f;
                     }
@@ -427,8 +428,8 @@ namespace thelost
         {
 
             orig(self, eu);
-            
-            if(self.room != null)
+
+            if (self.room != null)
             {
                 if (hissCooldownTimer[self.playerState.playerNumber] >= 100)
                 {
@@ -439,7 +440,7 @@ namespace thelost
                 {
                     hissCooldownTimer[self.playerState.playerNumber]--;
                 }
-                if (Input.GetKeyDown(options.deerbind.Value)  && Hissing.TryGet(self, out bool flaghiss) && flaghiss && self.FoodInStomach >= options.deerpips.Value)
+                if (Input.GetKeyDown(options.deerbind.Value) && Hissing.TryGet(self, out bool flaghiss) && flaghiss && self.FoodInStomach >= options.deerpips.Value)
                 {
                     if (hissCooldownTimer[self.playerState.playerNumber] == 0)
                     {
@@ -476,17 +477,17 @@ namespace thelost
 
                 }
             }
-            
-           
+
+
         }
         private int[] hissCooldownTimer = { 0, 0, 0, 0 };
         void ShockCommand(On.Player.orig_Update orig, Player self, bool eu)
         {
             orig(self, eu);
-            
+
             if (ShockEnemy.TryGet(self, out bool flagshock) && flagshock)
             {
-                if ( Input.GetKeyDown(options.shockbind.Value) && self.grabbedBy.Count > 0 && !self.dead && self.FoodInStomach >= options.shockpips.Value)
+                if (Input.GetKeyDown(options.shockbind.Value) && self.grabbedBy.Count > 0 && !self.dead && self.FoodInStomach >= options.shockpips.Value)
                 {
                     self.SubtractFood(options.shockpips.Value);
                     Creature shockObject = self.grabbedBy[0].grabber;
@@ -548,12 +549,12 @@ namespace thelost
             }
         }
 
-       
+
 
         void whiskercontainer(On.PlayerGraphics.orig_AddToContainer orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
             orig(self, sLeaser, rCam, newContatiner);
-            
+
             if (gilled.TryGet(self.player, out bool gillval) && gillval && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data) && sLeaser.sprites.Length > 13)
             {
                 FContainer container = rCam.ReturnFContainer("Midground");
@@ -577,9 +578,9 @@ namespace thelost
 
                     }
                 }
-                for(int i = 0; i < 2; i++)
+                for (int i = 0; i < 2; i++)
                 {
-                    for(int j = 0; j < 2; j++)
+                    for (int j = 0; j < 2; j++)
                     {
                         FSprite whisker = sLeaser.sprites[data.facewhiskersprite(i, j)];
                         container.AddChild(whisker);
@@ -590,7 +591,7 @@ namespace thelost
         }
         void whiskerDraw(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
-            
+
             orig(self, sLeaser, rCam, timeStacker, camPos);
             if (gilled.TryGet(self.player, out bool gillval) && gillval && tailwhiskerstorage.TryGetValue(self.player, out Whiskerdata data))
             {
@@ -603,7 +604,7 @@ namespace thelost
                         Vector2 vector = new Vector2((sLeaser.sprites[2] as TriangleMesh).vertices[10].x + camPos.x, (sLeaser.sprites[2] as TriangleMesh).vertices[10].y + camPos.y);
                         Vector2 lol = new Vector2((sLeaser.sprites[2] as TriangleMesh).vertices[12].x + camPos.x, (sLeaser.sprites[2] as TriangleMesh).vertices[12].y + camPos.y);
                         float f = 0f;
-                        float num =  Custom.VecToDeg(Vector2.Lerp((sLeaser.sprites[2] as TriangleMesh).vertices[10], (sLeaser.sprites[2] as TriangleMesh).vertices[12],timeStacker));
+                        float num = Custom.VecToDeg(Vector2.Lerp((sLeaser.sprites[2] as TriangleMesh).vertices[10], (sLeaser.sprites[2] as TriangleMesh).vertices[12], timeStacker));
                         float test = Vector2.SignedAngle(vector, lol);
                         if (i == 0)
                         {
@@ -614,7 +615,7 @@ namespace thelost
                             vector.x += 2f;
                         }
                         var spine = self.SpinePosition(0.8f, timeStacker);
-                      
+
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].x = vector.x - camPos.x;
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].y = vector.y - camPos.y;
                         sLeaser.sprites[data.tailwhiskersprite(i, j)].rotation = Custom.AimFromOneVectorToAnother(vector, Vector2.Lerp(data.tailScales[index].lastPos, data.tailScales[index].pos, timeStacker)) + Custom.VecToDeg(spine.dir);
@@ -625,7 +626,7 @@ namespace thelost
                     }
                 }
                 index = 0;
-                for(int i = 0; i < 2; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     for (int j = 0; j < 2; j++)
                     {
@@ -705,7 +706,7 @@ namespace thelost
                 return initialfacewhiskerloc + side + pair + pair;
             }
         }
-       
+
     }
 
     public class OptionsMenu : OptionInterface
@@ -714,7 +715,7 @@ namespace thelost
         public readonly Configurable<KeyCode> shockbind;
         public readonly Configurable<int> deerpips;
         public readonly Configurable<KeyCode> deerbind;
-        
+
 
         private UIelement[] UIArrPlayerOptions;
         public OptionsMenu(Plugin plugin)
@@ -723,7 +724,7 @@ namespace thelost
             shockbind = this.config.Bind<KeyCode>("shockbind", KeyCode.S);
             deerpips = this.config.Bind<int>("deerpips", 1);
             deerbind = this.config.Bind<KeyCode>("deerbind", KeyCode.D);
-            
+
         }
         public override void Initialize()
         {
@@ -738,7 +739,7 @@ namespace thelost
                 new OpLabel(10f,520f,"Pips used for shocking"),
                 new OpSlider(shockpips,new Vector2(10f,490f),5f),
                 new OpLabel(10f,460f,"Bind for shocking"),
-                new OpKeyBinder(shockbind,new Vector2(10f,430f),new Vector2(30f,30f)),
+                new OpKeyBinder(shockbind,new Vector2(10f,430f),new Vector2(30f,30f),true,OpKeyBinder.BindController.Controller1),
                 new OpLabel(10f,400f,"Pips used for deercalling"),
                 new OpSlider(deerpips,new Vector2(10f,370f),5f),
                 new OpLabel(10f,340f,"Bind for deercalling"),

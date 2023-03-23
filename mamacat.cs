@@ -66,6 +66,7 @@ namespace thelost
                     sLeaser.sprites[fluffinfo.initialsprite + i] = new FSprite("Circle20");
                 }
                 self.AddToContainer(sLeaser, rCam, null);
+                fluffinfo.ready = true;
             }
         }
         ConditionalWeakTable<Player, Fluffdata> fluff = new ConditionalWeakTable<Player, Fluffdata>();
@@ -73,6 +74,7 @@ namespace thelost
         {
             public int initialsprite;
             public string sprite;
+            public bool ready = false;
 
         }
     }
