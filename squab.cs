@@ -13,6 +13,9 @@ using Fisobs.Properties;
 using Fisobs.Sandbox;
 using CreatureType = CreatureTemplate.Type;
 using static PathCost.Legality;
+using System.Numerics;
+using Vector2 = UnityEngine.Vector2;
+using System.Runtime.CompilerServices;
 
 namespace thelost
 {
@@ -144,7 +147,7 @@ namespace thelost
 
             public static readonly SquabAI.Behavior FollowFriend = new("FollowFriend", true);
         }
-        SquabAI.Behavior behavior;
+        public SquabAI.Behavior behavior;
         public SquabAI(AbstractCreature creature, World world) : base(creature, world)
         {
             this.squab = (creature.realizedCreature as Squab);
@@ -170,7 +173,7 @@ namespace thelost
         {
             throw new NotImplementedException();
         }
-
+       
         public AIModule ModuleToTrackRelationship(CreatureTemplate.Relationship relationship)
         {
             if (relationship.type == CreatureTemplate.Relationship.Type.Afraid)
@@ -367,6 +370,173 @@ namespace thelost
             base.buoyancy = 0.95f;
             
         }
+        public void Act()
+        {
+            MovementConnection movementConnection = (this.ai.pathFinder as StandardPather).FollowPath(this.room.GetWorldCoordinate(base.mainBodyChunk.pos), true);
+            if (movementConnection == null)
+            {
+                movementConnection = (this.ai.pathFinder as StandardPather).FollowPath(this.room.GetWorldCoordinate(base.bodyChunks[1].pos), true);
+            }
+            if (base.abstractCreature.controlled && (movementConnection == null || !this.AllowableControlledAIOverride(movementConnection.type)))
+            {
+                movementConnection = null;
+                if (this.inputWithDiagonals != null)
+                {
+                    MovementConnection.MovementType type = MovementConnection.MovementType.Standard;
+                    if (movementConnection != null)
+                    {
+                        type = movementConnection.type;
+                    }
+                    if (this.room.GetTile(base.mainBodyChunk.pos).Terrain == Room.Tile.TerrainType.ShortcutEntrance)
+                    {
+                        type = MovementConnection.MovementType.ShortCut;
+                    }
+                }
+            }
+            if (movementConnection != null)
+            {
+                this.Run(movementConnection);
+            }
+            else
+            {
+                base.GoThroughFloors = false;
+            }
+        }
+        private void Swim()
+        {
+            BodyChunk mainBodyChunk = base.mainBodyChunk;
+            mainBodyChunk.vel.y = mainBodyChunk.vel.y + 1.5f;
+        }
+        MovementConnection lastFollowedConnection;
+        bool currentlyClimbingCorridor;
+        int footingCounter;
+        public bool Footing
+        {
+            get
+            {
+                return this.footingCounter > 20;
+            }
+        }
+        int specialMoveCounter;
+        IntVector2 specialMoveDestination;
+        float runSpeed = 2f;
+        private void MoveTowards(Vector2 moveTo)
+        {
+            Vector2 vector = Custom.DirVec(base.mainBodyChunk.pos, moveTo);
+            if (this.room.aimap.getAItile(base.bodyChunks[1].pos).acc >= AItile.Accessibility.Climb)
+            {
+                vector *= 0.5f;
+            }
+            if (!this.Footing)
+            {
+                vector *= 0.3f;
+            }
+            if (base.IsTileSolid(1, 0, -1) && (((double)vector.x < -0.5 && base.mainBodyChunk.pos.x > base.bodyChunks[1].pos.x + 5f) || ((double)vector.x > 0.5 && base.mainBodyChunk.pos.x < base.bodyChunks[1].pos.x - 5f)))
+            {
+                BodyChunk mainBodyChunk = base.mainBodyChunk;
+                mainBodyChunk.vel.x = mainBodyChunk.vel.x - ((vector.x < 0f) ? -1f : 1f) * 1.3f;
+                BodyChunk bodyChunk = base.bodyChunks[1];
+                bodyChunk.vel.x = bodyChunk.vel.x + ((vector.x < 0f) ? -1f : 1f) * 0.5f;
+                if (!base.IsTileSolid(0, 0, 1))
+                {
+                    BodyChunk mainBodyChunk2 = base.mainBodyChunk;
+                    mainBodyChunk2.vel.y = mainBodyChunk2.vel.y + 3.2f;
+                }
+            }
+            base.mainBodyChunk.vel += vector * 4.2f * this.runSpeed;
+            base.bodyChunks[1].vel -= vector * 1f * this.runSpeed;
+            base.GoThroughFloors = (moveTo.y < base.mainBodyChunk.pos.y - 5f);
+        }
+        private void Run(MovementConnection followingConnection)
+        {
+            if (followingConnection.destinationCoord.y > followingConnection.startCoord.y && this.room.aimap.getAItile(followingConnection.destinationCoord).acc != AItile.Accessibility.Climb)
+            {
+                this.currentlyClimbingCorridor = true;
+            }
+            if (followingConnection.type == MovementConnection.MovementType.ReachUp)
+            {
+                (this.ai.pathFinder as StandardPather).pastConnections.Clear();
+            }
+            if (followingConnection.type == MovementConnection.MovementType.ShortCut || followingConnection.type == MovementConnection.MovementType.NPCTransportation)
+            {
+                this.enteringShortCut = new IntVector2?(followingConnection.StartTile);
+                if (base.abstractCreature.controlled)
+                {
+                    bool flag = false;
+                    List<IntVector2> list = new List<IntVector2>();
+                    foreach (ShortcutData shortcutData in this.room.shortcuts)
+                    {
+                        if (shortcutData.shortCutType == ShortcutData.Type.NPCTransportation && shortcutData.StartTile != followingConnection.StartTile)
+                        {
+                            list.Add(shortcutData.StartTile);
+                        }
+                        if (shortcutData.shortCutType == ShortcutData.Type.NPCTransportation && shortcutData.StartTile == followingConnection.StartTile)
+                        {
+                            flag = true;
+                        }
+                    }
+                    if (flag)
+                    {
+                        if (list.Count > 0)
+                        {
+                            list.Shuffle<IntVector2>();
+                            this.NPCTransportationDestination = this.room.GetWorldCoordinate(list[0]);
+                        }
+                        else
+                        {
+                            this.NPCTransportationDestination = followingConnection.destinationCoord;
+                        }
+                    }
+                }
+                else if (followingConnection.type == MovementConnection.MovementType.NPCTransportation)
+                {
+                    this.NPCTransportationDestination = followingConnection.destinationCoord;
+                }
+            }
+            else if (followingConnection.type == MovementConnection.MovementType.OpenDiagonal || followingConnection.type == MovementConnection.MovementType.ReachOverGap || followingConnection.type == MovementConnection.MovementType.ReachUp || followingConnection.type == MovementConnection.MovementType.ReachDown || followingConnection.type == MovementConnection.MovementType.SemiDiagonalReach)
+            {
+                this.specialMoveCounter = 30;
+                this.specialMoveDestination = followingConnection.DestTile;
+            }
+            else
+            {
+                Vector2 vector = this.room.MiddleOfTile(followingConnection.DestTile);
+                if (this.lastFollowedConnection != null && this.lastFollowedConnection.type == MovementConnection.MovementType.ReachUp)
+                {
+                    base.mainBodyChunk.vel += Custom.DirVec(base.mainBodyChunk.pos, vector) * 4f;
+                }
+                if (this.Footing)
+                {
+                    for (int j = 0; j < 2; j++)
+                    {
+                        if (followingConnection.startCoord.x == followingConnection.destinationCoord.x)
+                        {
+                            BodyChunk bodyChunk = base.bodyChunks[j];
+                            bodyChunk.vel.x = bodyChunk.vel.x + Mathf.Min((vector.x - base.bodyChunks[j].pos.x) / 8f, 1.2f);
+                        }
+                        else if (followingConnection.startCoord.y == followingConnection.destinationCoord.y)
+                        {
+                            BodyChunk bodyChunk2 = base.bodyChunks[j];
+                            bodyChunk2.vel.y = bodyChunk2.vel.y + Mathf.Min((vector.y - base.bodyChunks[j].pos.y) / 8f, 1.2f);
+                        }
+                    }
+                }
+                if (this.lastFollowedConnection != null && (this.Footing || this.room.aimap.TileAccessibleToCreature(base.mainBodyChunk.pos, base.Template)) && ((followingConnection.startCoord.x != followingConnection.destinationCoord.x && this.lastFollowedConnection.startCoord.x == this.lastFollowedConnection.destinationCoord.x) || (followingConnection.startCoord.y != followingConnection.destinationCoord.y && this.lastFollowedConnection.startCoord.y == this.lastFollowedConnection.destinationCoord.y)))
+                {
+                    base.mainBodyChunk.vel *= 0.7f;
+                    base.bodyChunks[1].vel *= 0.5f;
+                }
+                if (followingConnection.type == MovementConnection.MovementType.DropToFloor)
+                {
+                    this.footingCounter = 0;
+                }
+                this.MoveTowards(vector);
+            }
+            this.lastFollowedConnection = followingConnection;
+        }
+
+
+
         public override Color ShortCutColor()
         {
             try
@@ -450,7 +620,37 @@ namespace thelost
             }
             */
             base.Update(eu);
+            if (base.Consious)
+            {
+                this.footingCounter++;
+                this.Act();
+            }
+            else
+            {
+                this.footingCounter = 0;
+            }
+            if (this.Footing)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    base.bodyChunks[i].vel *= 0.8f;
+                    BodyChunk bodyChunk = base.bodyChunks[i];
+                    bodyChunk.vel.y = bodyChunk.vel.y + base.gravity;
+                }
+            }
+            if (base.Consious && !this.Footing && this.ai.behavior == SquabAI.Behavior.Flee && !base.safariControlled)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+                    if (this.room.aimap.TileAccessibleToCreature(this.room.GetTilePosition(base.bodyChunks[j].pos), base.Template))
+                    {
+                        base.bodyChunks[j].vel += Custom.DegToVec(Random.value * 360f) * Random.value * 5f;
+                    }
+                }
+            }
         }
+       public float runCycle = 2f;
+        private int outOfWaterFooting;
     }
 
     internal class Squabgraphics : GraphicsModule
@@ -480,45 +680,43 @@ namespace thelost
             get { return base.owner as Squab; }
         }
         public int TotalSprites = 4;
-        public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
+
+        public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer? newContainer)
         {
-            
-                sLeaser.RemoveAllSpritesFromContainer();
-                if (newContatiner == null)
-                {
-                    newContatiner = rCam.ReturnFContainer("Midground");
-                }
-                for (int i = 0; i < this.TotalSprites; i++)
-                {
-                    newContatiner.AddChild(sLeaser.sprites[i]);
-                }
+            newContainer ??= rCam.ReturnFContainer("Midground");
+
+            for (int i = 0; i < sLeaser.sprites.Length; i++)
+            {
+                newContainer.AddChild(sLeaser.sprites[i]);
+            }
         }
 
         public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
+            base.DrawSprites(sLeaser, rCam, timeStacker, camPos);
             if (culled)
             {
                 return;
             }
-            sLeaser.sprites[0].color = this.squab.ivars.basecolor.rgb;
-            sLeaser.sprites[1].color = this.squab.ivars.effectcolor.rgb;
-            sLeaser.sprites[2].color = this.squab.ivars.basecolor.rgb;
-            sLeaser.sprites[3].color = this.squab.ivars.effectcolor.rgb;
+            Color fuckyou = new Color(1f, 1f, 0f);
+            sLeaser.sprites[0].color = fuckyou;
+            sLeaser.sprites[1].color = fuckyou;
+            sLeaser.sprites[2].color = fuckyou;
+            sLeaser.sprites[3].color = fuckyou;
 
             Vector2 headchunkpos = Vector2.Lerp(this.squab.bodyChunks[1].lastPos, this.squab.bodyChunks[1].pos, timeStacker);
             Vector2 bodychunkpos = Vector2.Lerp(this.squab.bodyChunks[0].lastPos, this.squab.bodyChunks[0].pos, timeStacker);
             Vector2 bodydir = Custom.DirVec(headchunkpos, bodychunkpos);
-            Vector2 tailspritepos = bodychunkpos + new Vector2(1.5f, 0.5f);
-            Vector2 headspritepos = bodychunkpos + new Vector2(-1f, 1f);
-            sLeaser.sprites[1].x = headspritepos.x;
-            sLeaser.sprites[1].y = headspritepos.y;
+            sLeaser.sprites[1].x = head.pos.x;
+            sLeaser.sprites[1].y = head.pos.y;
             sLeaser.sprites[0].x = bodychunkpos.x;
             sLeaser.sprites[0].y = bodychunkpos.y;
-            sLeaser.sprites[2].x = tailspritepos.x;
-            sLeaser.sprites[2].y = tailspritepos.y;
-            sLeaser.sprites[3].x = bodychunkpos.x + 1f;
-            sLeaser.sprites[3].x = bodychunkpos.y - 1f;
-            base.DrawSprites(sLeaser, rCam, timeStacker, camPos);
+            sLeaser.sprites[2].x = tail.pos.x;
+            sLeaser.sprites[2].y = tail.pos.y;
+            sLeaser.sprites[3].x = limbs[0].pos.x;
+            sLeaser.sprites[3].x = limbs[0].pos.y;
+            
+            ApplyPalette(sLeaser,rCam,rCam.currentPalette);
         }
 
         public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
@@ -535,11 +733,38 @@ namespace thelost
             base.InitiateSprites(sLeaser, rCam);
         }
 
+        float runCycle;
+        float lastRunCycle;
         public override void Update()
         {
             base.Update();
+            this.lastRunCycle = this.runCycle;
+            this.runCycle = this.squab.runCycle;
             head.Update();
+            this.head.lastPos = this.head.pos;
+            this.head.pos += this.head.vel;
+            Vector2 vector = this.squab.mainBodyChunk.pos + Custom.DirVec(this.squab.bodyChunks[1].pos, this.squab.mainBodyChunk.pos);
+            this.head.ConnectToPoint(vector, 4f, false, 0f, this.squab.mainBodyChunk.vel, 0.5f, 0.1f);
+            this.head.vel += (vector - this.head.pos) / 6f;
             tail.Update();
+            this.tail.lastPos = this.tail.pos;
+            this.tail.pos += this.tail.vel;
+            vector = this.squab.bodyChunks[1].pos + Custom.DirVec(this.squab.mainBodyChunk.pos, this.squab.bodyChunks[1].pos) * 8f;
+            this.tail.ConnectToPoint(vector, 7f, false, 0f, this.squab.bodyChunks[1].vel, 0.1f, 0f);
+            this.tail.vel += (vector - this.tail.pos) / 46f;
+            this.tail.pos += Custom.DegToVec(Random.value * 360f) * 2f * Random.value;
+            this.tail.PushOutOfTerrain(this.squab.room, this.squab.bodyChunks[1].pos);
+            Vector2 vector2 = Custom.DirVec(this.squab.bodyChunks[1].pos, this.squab.bodyChunks[0].pos);
+            Vector2 a2 = Custom.PerpendicularVector(vector2) * Mathf.Lerp(1f, -1f, 1.05f);
+            this.limbs[0].Update();
+            this.limbs[0].ConnectToPoint(this.squab.bodyChunks[0].pos, 12f, false, 0f, this.squab.bodyChunks[0].vel, 0f, 0f);
+            Limb limb = this.limbs[0];
+            limb.vel.y = limb.vel.y - 0.6f;
+            float num = Mathf.Sin((this.runCycle + (float)this.limbs[0].limbNumber / 4f) * 3.1415927f * 2f);
+            Vector2 goalPos = this.squab.bodyChunks[0].pos + vector2 * 8f * (0.3f + 0.7f * num) + a2 * 4f;
+            this.limbs[0].FindGrip(this.squab.room, this.squab.bodyChunks[0].pos, this.squab.bodyChunks[0].pos, 15f, goalPos, 2, 2, false);
+            this.limbs[0].pos += vector2 * (2f + num * 8f);
+            this.limbs[0].pos -= a2 * 3f * Mathf.Cos((this.runCycle + (float)this.limbs[0].limbNumber / 4f) * 3.1415927f * 2f) * 1f;
         }
     }
 }
