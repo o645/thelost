@@ -123,7 +123,7 @@ namespace thelost
             self.HasDynamicRelationship(CreatureType.Slugcat, 1f);
         }
     }
-    internal class SquabAI : ArtificialIntelligence, FriendTracker.IHaveFriendTracker, IUseARelationshipTracker
+    internal class SquabAI : ArtificialIntelligence //FriendTracker.IHaveFriendTracker, IUseARelationshipTracker
     {
         public Squab squab;
 
@@ -169,10 +169,6 @@ namespace thelost
 
             
         }
-        public void GiftRecieved(SocialEventRecognizer.OwnedItemOnGround gift)
-        {
-            throw new NotImplementedException();
-        }
        
         public AIModule ModuleToTrackRelationship(CreatureTemplate.Relationship relationship)
         {
@@ -182,7 +178,29 @@ namespace thelost
             }
             return null;
         }
-
+        public CreatureTemplate.Relationship UpdateDynamicRelationship(RelationshipTracker.DynamicRelationship dRelation)
+        {
+            if (dRelation.trackerRep.visualContact)
+            {
+                dRelation.state.alive = dRelation.trackerRep.representedCreature.state.alive;
+            }
+            CreatureTemplate.Relationship relationship = base.StaticRelationship(dRelation.trackerRep.representedCreature);
+            if (relationship.type == CreatureTemplate.Relationship.Type.Afraid)
+            {
+                if (!dRelation.state.alive)
+                {
+                    relationship.intensity = 0f;
+                }
+                else if (dRelation.trackerRep.BestGuessForPosition().room == this.squab.room.abstractRoom.index && !dRelation.trackerRep.representedCreature.creatureTemplate.canFly)
+                {
+                    float num = Mathf.Lerp(0.1f, 1.6f, Mathf.InverseLerp(-100f, 200f, this.squab.room.MiddleOfTile(dRelation.trackerRep.BestGuessForPosition().Tile).y - this.squab.mainBodyChunk.pos.y));
+                    float value = float.MaxValue;
+                    num = Mathf.Lerp(num, 1f, Mathf.InverseLerp(50f, 500f, value));
+                    relationship.intensity *= num;
+                }
+            }
+            return relationship;
+        }
         public override PathCost TravelPreference(MovementConnection coord, PathCost cost)
         {
             if (this.behavior != SquabAI.Behavior.Flee)
@@ -211,9 +229,6 @@ namespace thelost
                 } else if(aimodule is RainTracker) {
                     this.behavior = Behavior.EscapeRain;
 
-                }else if(aimodule is FriendTracker)
-                {
-                    this.behavior = Behavior.FollowFriend;
                 } else if(aimodule is NoiseTracker) {
                     this.behavior = Behavior.InvestigateSound;
                 }
@@ -224,10 +239,10 @@ namespace thelost
             }
             if (this.behavior == Behavior.Idle)
             {
-                List<WorldCoordinate> fruit = new List<WorldCoordinate>();
-                for(int j = 0;j< this.squab.room.physicalObjects.Length; j++)
+              /*  List<WorldCoordinate> fruit = new List<WorldCoordinate>();
+                for(int j = 0;j< this.squab.room.physicalObjects[0].Count; j++)
                 {
-                    PhysicalObject items = (PhysicalObject)this.squab.room.physicalObjects.GetValue(j);
+                    PhysicalObject items = this.squab.room.physicalObjects[0][j];
                     if (items is DangleFruit)
                     {
                         for (int i = items.abstractPhysicalObject.pos.y; i > 0; i--)
@@ -245,7 +260,7 @@ namespace thelost
                 {
                     int chosenfruit = Random.Range(0,fruit.Count);
                     this.creature.abstractAI.SetDestination(fruit[chosenfruit]);
-                }
+                }*/
                 if (!base.pathFinder.CoordinateReachableAndGetbackable(base.pathFinder.GetDestination))
                 {
                     this.creature.abstractAI.SetDestination(this.creature.pos);
@@ -309,38 +324,13 @@ namespace thelost
 
         }
         public int idlePosCounter = 0;
-        public CreatureTemplate.Relationship UpdateDynamicRelationship(RelationshipTracker.DynamicRelationship dRelation)
-        {
-            if (dRelation.trackerRep.visualContact)
-            {
-                dRelation.state.alive = dRelation.trackerRep.representedCreature.state.alive;
-            }
-            CreatureTemplate.Relationship relationship = base.StaticRelationship(dRelation.trackerRep.representedCreature);
-            if (relationship.type == CreatureTemplate.Relationship.Type.Afraid)
-            {
-                if (!dRelation.state.alive)
-                {
-                    relationship.intensity = 0f;
-                } else if(dRelation.trackerRep.BestGuessForPosition().room == this.squab.room.abstractRoom.index && !dRelation.trackerRep.representedCreature.creatureTemplate.canFly)
-                {
-                    float num = Mathf.Lerp(0.1f, 1.6f, Mathf.InverseLerp(-100f, 200f, this.squab.room.MiddleOfTile(dRelation.trackerRep.BestGuessForPosition().Tile).y - this.squab.mainBodyChunk.pos.y));
-                    float value = float.MaxValue;
-                    num = Mathf.Lerp(num, 1f, Mathf.InverseLerp(50f, 500f, value));
-                    relationship.intensity *= num;
-                }
-            }
-            return relationship;
-        }
+
 
         public override bool WantToStayInDenUntilEndOfCycle()
         {
             return base.rainTracker.Utility() > 0.01f;
         }
 
-        public RelationshipTracker.TrackedCreatureState CreateTrackedCreatureState(RelationshipTracker.DynamicRelationship rel)
-        {
-            return null;
-        }
     }
 
     internal class SquabState : HealthState
@@ -372,26 +362,11 @@ namespace thelost
         }
         public void Act()
         {
+            this.ai.Update();
             MovementConnection movementConnection = (this.ai.pathFinder as StandardPather).FollowPath(this.room.GetWorldCoordinate(base.mainBodyChunk.pos), true);
             if (movementConnection == null)
             {
                 movementConnection = (this.ai.pathFinder as StandardPather).FollowPath(this.room.GetWorldCoordinate(base.bodyChunks[1].pos), true);
-            }
-            if (base.abstractCreature.controlled && (movementConnection == null || !this.AllowableControlledAIOverride(movementConnection.type)))
-            {
-                movementConnection = null;
-                if (this.inputWithDiagonals != null)
-                {
-                    MovementConnection.MovementType type = MovementConnection.MovementType.Standard;
-                    if (movementConnection != null)
-                    {
-                        type = movementConnection.type;
-                    }
-                    if (this.room.GetTile(base.mainBodyChunk.pos).Terrain == Room.Tile.TerrainType.ShortcutEntrance)
-                    {
-                        type = MovementConnection.MovementType.ShortCut;
-                    }
-                }
             }
             if (movementConnection != null)
             {
@@ -402,13 +377,7 @@ namespace thelost
                 base.GoThroughFloors = false;
             }
         }
-        private void Swim()
-        {
-            BodyChunk mainBodyChunk = base.mainBodyChunk;
-            mainBodyChunk.vel.y = mainBodyChunk.vel.y + 1.5f;
-        }
         MovementConnection lastFollowedConnection;
-        bool currentlyClimbingCorridor;
         int footingCounter;
         public bool Footing
         {
@@ -447,6 +416,8 @@ namespace thelost
             base.bodyChunks[1].vel -= vector * 1f * this.runSpeed;
             base.GoThroughFloors = (moveTo.y < base.mainBodyChunk.pos.y - 5f);
         }
+
+        bool currentlyClimbingCorridor;
         private void Run(MovementConnection followingConnection)
         {
             if (followingConnection.destinationCoord.y > followingConnection.startCoord.y && this.room.aimap.getAItile(followingConnection.destinationCoord).acc != AItile.Accessibility.Climb)
@@ -707,14 +678,14 @@ namespace thelost
             Vector2 headchunkpos = Vector2.Lerp(this.squab.bodyChunks[1].lastPos, this.squab.bodyChunks[1].pos, timeStacker);
             Vector2 bodychunkpos = Vector2.Lerp(this.squab.bodyChunks[0].lastPos, this.squab.bodyChunks[0].pos, timeStacker);
             Vector2 bodydir = Custom.DirVec(headchunkpos, bodychunkpos);
-            sLeaser.sprites[1].x = head.pos.x;
-            sLeaser.sprites[1].y = head.pos.y;
-            sLeaser.sprites[0].x = bodychunkpos.x;
-            sLeaser.sprites[0].y = bodychunkpos.y;
-            sLeaser.sprites[2].x = tail.pos.x;
-            sLeaser.sprites[2].y = tail.pos.y;
-            sLeaser.sprites[3].x = limbs[0].pos.x;
-            sLeaser.sprites[3].x = limbs[0].pos.y;
+            sLeaser.sprites[1].x = head.pos.x - camPos.x;
+            sLeaser.sprites[1].y = head.pos.y - camPos.y;
+            sLeaser.sprites[0].x = bodychunkpos.x - camPos.x;
+            sLeaser.sprites[0].y = bodychunkpos.y - camPos.y;
+            sLeaser.sprites[2].x = tail.pos.x - camPos.x;
+            sLeaser.sprites[2].y = tail.pos.y - camPos.y;
+            sLeaser.sprites[3].x = limbs[0].pos.x - camPos.x;
+            sLeaser.sprites[3].x = limbs[0].pos.y - camPos.y;
             
             ApplyPalette(sLeaser,rCam,rCam.currentPalette);
         }
