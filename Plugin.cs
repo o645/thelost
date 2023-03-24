@@ -58,10 +58,11 @@ namespace thelost
             {
                 Logger.LogError(ex);
             }
+            Content.Register(new mintcritob());
+            Content.Register(new rotratcritob());
             try
             {
-                Content.Register(new mintcritob());
-                Content.Register(new rotratcritob());
+                Content.Register(new Squabcritob());
             }
             catch (Exception ex)
             {

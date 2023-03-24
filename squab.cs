@@ -8,13 +8,26 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Fisobs.Core;
+using Fisobs.Properties;
+using Fisobs.Sandbox;
+using CreatureType = CreatureTemplate.Type;
+using static PathCost.Legality;
 
 namespace thelost
 {
     internal class Squabcritob : Critob
     {
-        public Squabcritob(CreatureTemplate.Type type) : base(type)
+        public static readonly CreatureType Squab = new("Squab", true);
+        public static readonly MultiplayerUnlocks.SandboxUnlockID SquabUnlock = new("Squab", true);
+        public Squabcritob() : base(Squab)
         {
+            LoadedPerformanceCost = 20f;
+            SandboxPerformanceCost = new(linear: 0.6f, exponential: 0.1f);
+            ShelterDanger = ShelterDanger.Safe;
+            CreatureName = "Squab";
+
+            RegisterUnlock(killScore: KillScore.Configurable(1), SquabUnlock, parent: MultiplayerUnlocks.SandboxUnlockID.LanternMouse, data: 0);
         }
 
         public override ArtificialIntelligence CreateRealizedAI(AbstractCreature acrit)
@@ -26,15 +39,85 @@ namespace thelost
         {
             return new Squab(acrit, acrit.world);
         }
+        public override CreatureState CreateState(AbstractCreature acrit)
+        {
+            return new SquabState(acrit);
+        }
+        public override IEnumerable<string> WorldFileAliases()
+        {
+            return new[] { "squab", "Squab" };
+        }
 
         public override CreatureTemplate CreateTemplate()
         {
-            throw new NotImplementedException();
+            CreatureTemplate t = new CreatureFormula(this)
+            {
+                DefaultRelationship = new(CreatureTemplate.Relationship.Type.Afraid, 0.5f),
+                HasAI = true,
+                InstantDeathDamage = 1,
+                Pathing = PreBakedPathing.Ancestral(CreatureType.LanternMouse),
+                TileResistances = new()
+                {
+                    Floor = new(1,Allowed),
+                    Climb = new(1,Allowed),
+                    OffScreen = new(1,Allowed),
+                    Corridor = new(1,Allowed),
+                },
+                ConnectionResistances = new()
+                {
+                    Standard = new(1,Allowed),
+                    OpenDiagonal = new(1,Allowed),
+                    ShortCut = new(1,Allowed),
+                    NPCTransportation = new(1,Allowed),
+                    OffScreenMovement = new(1,Allowed),
+                    BetweenRooms = new(1,Allowed),
+                    DropToFloor = new(1,Allowed),
+                    Slope = new(1,Allowed),
+                },
+                DamageResistances = new()
+                {
+                    Base=0.95f,
+                },
+                StunResistances = new()
+                {
+                    Base = 0.6f,
+                },
+                
+            }.IntoTemplate();
+            t.offScreenSpeed = 0.4f;
+            t.abstractedLaziness = 100;
+            t.roamBetweenRoomsChance = 0.5f;
+            t.bodySize = 0.3f;
+            t.stowFoodInDen = false;
+            t.shortcutSegments = 1;
+            t.grasps = 1;
+            t.visualRadius = 800f;
+            t.deliciousness = 0.9f;
+            t.waterRelationship = CreatureTemplate.WaterRelationship.AirOnly;
+            t.waterPathingResistance = 1f;
+            t.meatPoints = 2;
+            t.dangerousToPlayer = 0f;
+            t.quickDeath = true;
+            return t;
         }
 
         public override void EstablishRelationships()
         {
-            throw new NotImplementedException();
+            Relationships self = new(Squab);
+            foreach(var template in StaticWorld.creatureTemplates)
+            {
+                if (template.quantified)
+                {
+                    self.Ignores(template.type);
+                    self.IgnoredBy(template.type);
+                }
+            }
+            self.Fears(CreatureType.LizardTemplate, 1f);
+            self.EatenBy(CreatureType.LizardTemplate, 1f);
+            self.Fears(CreatureType.Scavenger, 1f);
+            self.Fears(CreatureType.BigSpider, 1f);
+            self.EatenBy(CreatureType.BigSpider, 1f);
+            self.HasDynamicRelationship(CreatureType.Slugcat, 1f);
         }
     }
     internal class SquabAI : ArtificialIntelligence, FriendTracker.IHaveFriendTracker, IUseARelationshipTracker
@@ -80,26 +163,12 @@ namespace thelost
             base.utilityComparer.AddComparedModule(base.friendTracker, null, 1f, 1.1f);
             base.utilityComparer.AddComparedModule(base.noiseTracker, null, 0.6f, 1.1f);
             this.behavior = Behavior.Idle;
-        }
 
-        public RelationshipTracker.TrackedCreatureState CreateTrackedCreatureState(RelationshipTracker.DynamicRelationship rel)
-        {
-            return new RelationshipTracker.TrackedCreatureState();
+            
         }
-
-        public override void CreatureSpotted(bool firstSpot, Tracker.CreatureRepresentation otherCreature)
-        {
-            base.CreatureSpotted(firstSpot, otherCreature);
-        }
-
         public void GiftRecieved(SocialEventRecognizer.OwnedItemOnGround gift)
         {
             throw new NotImplementedException();
-        }
-
-        public override void HeardNoise(InGameNoise noise)
-        {
-            base.HeardNoise(noise);
         }
 
         public AIModule ModuleToTrackRelationship(CreatureTemplate.Relationship relationship)
@@ -232,6 +301,7 @@ namespace thelost
                 {
                     this.squab.ReleaseGrasp(0);
                 }
+               
             }
 
         }
@@ -263,12 +333,18 @@ namespace thelost
         {
             return base.rainTracker.Utility() > 0.01f;
         }
+
+        public RelationshipTracker.TrackedCreatureState CreateTrackedCreatureState(RelationshipTracker.DynamicRelationship rel)
+        {
+            return null;
+        }
     }
 
     internal class SquabState : HealthState
     {
         public SquabState(AbstractCreature creature) : base(creature)
         {
+            //(this.creature.realizedCreature as Squab).State = this;
         }
     }
     internal class Squab : AirBreatherCreature
@@ -290,6 +366,18 @@ namespace thelost
             base.waterFriction = 0.7f;
             base.buoyancy = 0.95f;
             
+        }
+        public override Color ShortCutColor()
+        {
+            try
+            {
+                return this.ivars.basecolor.rgb;
+            }
+            catch(Exception e)
+            {
+                Debug.Log(":[");
+                return new(0f, 0.5f, 1f);
+            }
         }
         public struct IndividualVariations
         {
@@ -335,12 +423,6 @@ namespace thelost
             }
         }
 
-        public override bool Grab(PhysicalObject obj, int graspUsed, int chunkGrabbed, Grasp.Shareability shareability, float dominance, bool overrideEquallyDominant, bool pacifying)
-        {
-            return base.Grab(obj, graspUsed, chunkGrabbed, shareability, dominance, overrideEquallyDominant, pacifying);
-        
-        }
-
         public override void InitiateGraphicsModule()
         {
             if(base.graphicsModule == null)
@@ -357,6 +439,7 @@ namespace thelost
                 base.bodyChunks[0].vel += Custom.DirVec(base.bodyChunks[0].pos, (Vector2)Futile.mousePosition + this.room.game.cameras[0].pos) * 14f;
                 this.Stun(12);
             }
+            /*
             if (!base.dead && this.State.health < 0f && Random.value < -this.State.health && Random.value < 0.025f)
             {
                 this.Die();
@@ -365,6 +448,7 @@ namespace thelost
             {
                 this.Stun(Random.Range(1, Random.Range(1, 27 - Custom.IntClamp((int)(20f * this.State.health), 0, 10))));
             }
+            */
             base.Update(eu);
         }
     }
@@ -381,6 +465,7 @@ namespace thelost
             tail = new BodyPart(this);
             tail.rad = 1f;
             bodyParts = new BodyPart[4];
+            limbs = new Limb[2];
             limbs[0] = new Limb(this, this.squab.bodyChunks[0], 0, 1f, 0.5f, 0.9f, 8f, 0.9f);
             limbs[1] = new Limb(this, this.squab.bodyChunks[0], 1, 1f, 0.5f, 0.9f, 8f, 0.9f);
             bodyParts[0] = limbs[0];
@@ -388,44 +473,73 @@ namespace thelost
             bodyParts[2] = this.head;
             bodyParts[3] = this.tail;
             Reset();
-            
-            
 
         }
-        CreatureLooker creaturelooker;
-        Squab squab
+        public Squab squab
         {
             get { return base.owner as Squab; }
         }
-
+        public int TotalSprites = 4;
         public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
-            base.AddToContainer(sLeaser, rCam, newContatiner);
-        }
-
-        public override void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
-        {
-            base.ApplyPalette(sLeaser, rCam, palette);
+            
+                sLeaser.RemoveAllSpritesFromContainer();
+                if (newContatiner == null)
+                {
+                    newContatiner = rCam.ReturnFContainer("Midground");
+                }
+                for (int i = 0; i < this.TotalSprites; i++)
+                {
+                    newContatiner.AddChild(sLeaser.sprites[i]);
+                }
         }
 
         public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
+            if (culled)
+            {
+                return;
+            }
+            sLeaser.sprites[0].color = this.squab.ivars.basecolor.rgb;
+            sLeaser.sprites[1].color = this.squab.ivars.effectcolor.rgb;
+            sLeaser.sprites[2].color = this.squab.ivars.basecolor.rgb;
+            sLeaser.sprites[3].color = this.squab.ivars.effectcolor.rgb;
+
+            Vector2 headchunkpos = Vector2.Lerp(this.squab.bodyChunks[1].lastPos, this.squab.bodyChunks[1].pos, timeStacker);
+            Vector2 bodychunkpos = Vector2.Lerp(this.squab.bodyChunks[0].lastPos, this.squab.bodyChunks[0].pos, timeStacker);
+            Vector2 bodydir = Custom.DirVec(headchunkpos, bodychunkpos);
+            Vector2 tailspritepos = bodychunkpos + new Vector2(1.5f, 0.5f);
+            Vector2 headspritepos = bodychunkpos + new Vector2(-1f, 1f);
+            sLeaser.sprites[1].x = headspritepos.x;
+            sLeaser.sprites[1].y = headspritepos.y;
+            sLeaser.sprites[0].x = bodychunkpos.x;
+            sLeaser.sprites[0].y = bodychunkpos.y;
+            sLeaser.sprites[2].x = tailspritepos.x;
+            sLeaser.sprites[2].y = tailspritepos.y;
+            sLeaser.sprites[3].x = bodychunkpos.x + 1f;
+            sLeaser.sprites[3].x = bodychunkpos.y - 1f;
             base.DrawSprites(sLeaser, rCam, timeStacker, camPos);
         }
 
         public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
+            sLeaser.sprites = new FSprite[this.TotalSprites];
+            //when i actually make the custom sprites there will be an extra sprite for the gradient.
+            //plus ill add on the googly eyes.
+            sLeaser.sprites[0] = new FSprite("Circle20"); //chunky body
+            sLeaser.sprites[1] = new FSprite("Circle4"); //head
+            sLeaser.sprites[2] = new FSprite("Circle4"); //tail bud
+            sLeaser.sprites[3] = new FSprite("LizardArm_13"); //leggy. only using 1 for now
+            //sLeaser.sprites[4] = new FSprite("LizardArm_13"; //this is the other leggy.
+            AddToContainer(sLeaser, rCam, null);
             base.InitiateSprites(sLeaser, rCam);
-        }
-
-        public override void Reset()
-        {
-            base.Reset();
         }
 
         public override void Update()
         {
             base.Update();
+            head.Update();
+            tail.Update();
         }
     }
 }
