@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <Reference Include="Fisobs">
-      <HintPath>C:\Users\spect\Downloads\Fisobs.dll</HintPath>
+      <HintPath>..\..\..\SteamLibrary\steamapps\workshop\content\312520\2920541687\plugins\Fisobs.dll</HintPath>
     </Reference>
     <Reference Include="HOOKS-Assembly-CSharp">
       <HintPath>..\..\..\SteamLibrary\steamapps\common\Rain World\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>

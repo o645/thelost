@@ -66,11 +66,12 @@ namespace thelost
         public mintcritob() : base(CustomTemplates.MintLizard)
         {
             Icon = new SimpleIcon("Kill_Black_Lizard", new Color(0.7254f, 1f, 0.9176f));
+
             LoadedPerformanceCost = 100f;
             SandboxPerformanceCost = new SandboxPerformanceCost(0.5f, 0.5f);
             RegisterUnlock(KillScore.Configurable(6), SandboxUnlockID.MintLiz);
-            minthooks hooks = new minthooks();
-            hooks.ApplyMyHooks();
+            minthooks.ApplyMyHooks();
+            
         }
         public override int ExpeditionScore()
         {
@@ -151,9 +152,9 @@ namespace thelost
         }
     }
 
-    public class minthooks
+    public static class minthooks
     {
-        public void ApplyMyHooks()
+        public static void ApplyMyHooks()
         {
             On.LizardLimb.ctor += limbnoises;
             On.Lizard.ctor += lizcolors;
@@ -173,7 +174,7 @@ namespace thelost
             On.LizardCosmetics.SpineSpikes.DrawSprites += camospines;
         }
 
-        private void camospines(On.LizardCosmetics.SpineSpikes.orig_DrawSprites orig, LizardCosmetics.SpineSpikes self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        private static void camospines(On.LizardCosmetics.SpineSpikes.orig_DrawSprites orig, LizardCosmetics.SpineSpikes self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             orig(self, sLeaser, rCam, timeStacker, camPos);
             if (self.lGraphics.lizard.Template.type == CustomTemplates.MintLizard)
@@ -186,7 +187,7 @@ namespace thelost
             }
         }
 
-        private void camotailfin(On.LizardCosmetics.TailFin.orig_DrawSprites orig, LizardCosmetics.TailFin self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        private static void camotailfin(On.LizardCosmetics.TailFin.orig_DrawSprites orig, LizardCosmetics.TailFin self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             orig(self, sLeaser, rCam, timeStacker, camPos);
             if (self.lGraphics.lizard.Template.type == CustomTemplates.MintLizard)
@@ -203,7 +204,7 @@ namespace thelost
             }
         }
 
-        private Color ihateselfstupidheadcolor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
+        private static Color ihateselfstupidheadcolor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
         {
             Color res = orig(self, timeStacker);
             if(self.lizard.Template.type == CustomTemplates.MintLizard) //because i couldn't get the stupid headcolor get hooks working we're doing self i guess!
@@ -237,7 +238,7 @@ namespace thelost
             }
             return res;
         }
-        private void camoupdate(On.LizardGraphics.orig_Update orig, LizardGraphics self)
+        private static void camoupdate(On.LizardGraphics.orig_Update orig, LizardGraphics self)
         {
             orig(self);
             if (self.lizard.Template.type == CustomTemplates.MintLizard)
@@ -304,7 +305,7 @@ namespace thelost
             }
         }
 
-        private Color bodycolordynamic(On.LizardGraphics.orig_BodyColor orig, LizardGraphics self, float f)
+        private static Color bodycolordynamic(On.LizardGraphics.orig_BodyColor orig, LizardGraphics self, float f)
         {
             Color res = orig(self, f);
             if(self.lizard.Template.type == CustomTemplates.MintLizard)
@@ -314,7 +315,7 @@ namespace thelost
             return res;
         }
 
-        private void camofix(On.LizardGraphics.orig_DrawSprites orig, LizardGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        private static void camofix(On.LizardGraphics.orig_DrawSprites orig, LizardGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             if(self.lizard.Template.type == CustomTemplates.MintLizard)
             {
@@ -353,7 +354,7 @@ namespace thelost
             orig(self,sLeaser,rCam,timeStacker,camPos);
         }
 
-        private Color mintcamo(On.LizardGraphics.orig_DynamicBodyColor orig, LizardGraphics self, float f)
+        private static Color mintcamo(On.LizardGraphics.orig_DynamicBodyColor orig, LizardGraphics self, float f)
         {
             Color res = orig(self, f);
             if(self.lizard.Template.type == CustomTemplates.MintLizard)
@@ -363,7 +364,7 @@ namespace thelost
             return res;
         }
 
-        private void mintcosmetics(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
+        private static void mintcosmetics(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
         {
             orig(self, ow);
             if(self.lizard.Template.type == CustomTemplates.MintLizard)
@@ -398,12 +399,11 @@ namespace thelost
                     e.numberOfSprites = e.bumps * 2;
                     num = self.AddCosmetic(num, e);
                 }
-                
                 Random.state = state;
             }
         }
 
-        private void spitaggressive(On.LizardAI.orig_AggressiveBehavior orig, LizardAI self, Tracker.CreatureRepresentation target, float tongueChance)
+        private static void spitaggressive(On.LizardAI.orig_AggressiveBehavior orig, LizardAI self, Tracker.CreatureRepresentation target, float tongueChance)
         {
             orig(self,target, tongueChance);
             if (self.lizard.Template.type == CustomTemplates.MintLizard && target.VisualContact)
@@ -412,7 +412,7 @@ namespace thelost
             }
         }
 
-        private void spitterfix(On.LizardAI.orig_Update orig, LizardAI self)
+        private static void spitterfix(On.LizardAI.orig_Update orig, LizardAI self)
         {
             orig(self);
             if (self.lizard.Template.type == CustomTemplates.MintLizard && self.redSpitAI.spitting)
@@ -421,7 +421,7 @@ namespace thelost
             }
         }
 
-        private void spitter(On.LizardAI.orig_ctor orig, LizardAI self, AbstractCreature creature, World world)
+        private static void spitter(On.LizardAI.orig_ctor orig, LizardAI self, AbstractCreature creature, World world)
         {
             orig(self,creature,world);
             
@@ -434,7 +434,7 @@ namespace thelost
             }
         }
 
-        private void lizcolors(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
+        private static void lizcolors(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
         {
             orig(self,abstractCreature,world);
             if(self.Template.type == CustomTemplates.MintLizard)
@@ -446,7 +446,7 @@ namespace thelost
             }
         }
 
-        private CreatureTemplate mintbreed(On.LizardBreeds.orig_BreedTemplate_Type_CreatureTemplate_CreatureTemplate_CreatureTemplate_CreatureTemplate orig, CreatureTemplate.Type type, CreatureTemplate lizardAncestor, CreatureTemplate pinkTemplate, CreatureTemplate blueTemplate, CreatureTemplate greenTemplate)
+        private static CreatureTemplate mintbreed(On.LizardBreeds.orig_BreedTemplate_Type_CreatureTemplate_CreatureTemplate_CreatureTemplate_CreatureTemplate orig, CreatureTemplate.Type type, CreatureTemplate lizardAncestor, CreatureTemplate pinkTemplate, CreatureTemplate blueTemplate, CreatureTemplate greenTemplate)
         {
            if(type == CustomTemplates.MintLizard)
             {
@@ -476,12 +476,13 @@ namespace thelost
                 temp.waterVision = 1f;
                 temp.waterPathingResistance = 1f;
                 temp.throwAction = "Spit";
+                
                 return temp;
             }
             return orig(type, lizardAncestor, pinkTemplate, blueTemplate, greenTemplate);
         }
 
-        private SoundID mintvoice(On.LizardVoice.orig_GetMyVoiceTrigger orig, LizardVoice self)
+        private static SoundID mintvoice(On.LizardVoice.orig_GetMyVoiceTrigger orig, LizardVoice self)
         {
             var res = orig(self);
             if(self.lizard is Lizard l && l.Template.type == CustomTemplates.MintLizard)
@@ -515,7 +516,7 @@ namespace thelost
             return res;
         }
 
-        private void limbnoises(On.LizardLimb.orig_ctor orig, LizardLimb self, GraphicsModule owner, BodyChunk connectionChunk, int num, float rad, float sfFric, float aFric, float huntSpeed, float quickness, LizardLimb otherLimbInPair)
+        private static void limbnoises(On.LizardLimb.orig_ctor orig, LizardLimb self, GraphicsModule owner, BodyChunk connectionChunk, int num, float rad, float sfFric, float aFric, float huntSpeed, float quickness, LizardLimb otherLimbInPair)
         {
             orig(self,owner,connectionChunk,num,rad,sfFric,aFric,huntSpeed, quickness, otherLimbInPair);
             if(owner is LizardGraphics l && l.lizard?.Template.type == CustomTemplates.MintLizard)

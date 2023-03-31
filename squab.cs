@@ -123,7 +123,7 @@ namespace thelost
             self.HasDynamicRelationship(CreatureType.Slugcat, 1f);
         }
     }
-    internal class SquabAI : ArtificialIntelligence //FriendTracker.IHaveFriendTracker, IUseARelationshipTracker
+    internal class SquabAI : ArtificialIntelligence, IUseARelationshipTracker
     {
         public Squab squab;
 
@@ -146,6 +146,7 @@ namespace thelost
             public static readonly SquabAI.Behavior InvestigateSound = new SquabAI.Behavior("InvestigateSound", true);
 
             public static readonly SquabAI.Behavior FollowFriend = new("FollowFriend", true);
+            public static readonly SquabAI.Behavior FindFruit = new("FindFruit", true);
         }
         public SquabAI.Behavior behavior;
         public SquabAI(AbstractCreature creature, World world) : base(creature, world)
@@ -159,7 +160,7 @@ namespace thelost
             base.AddModule(new DenFinder(this, creature));
             base.AddModule(new UtilityComparer(this));
             base.AddModule(new RelationshipTracker(this, base.tracker));
-            base.AddModule(new FriendTracker(this));
+
             base.AddModule(new NoiseTracker(this, this.tracker));
             base.utilityComparer.AddComparedModule(base.threatTracker, null, 1f, 1.1f);
             base.utilityComparer.AddComparedModule(base.rainTracker, null, 1f, 1.1f);
@@ -177,6 +178,19 @@ namespace thelost
                 return base.threatTracker;
             }
             return null;
+        }
+        public override Tracker.CreatureRepresentation CreateTrackerRepresentationForCreature(AbstractCreature otherCreature)
+        {
+            Tracker.CreatureRepresentation result;
+            if (otherCreature.creatureTemplate.smallCreature)
+            {
+                result = new Tracker.SimpleCreatureRepresentation(base.tracker, otherCreature, 0f, false);
+            }
+            else
+            {
+                result = new Tracker.ElaborateCreatureRepresentation(base.tracker, otherCreature, 1f, 3);
+            }
+            return result;
         }
         public CreatureTemplate.Relationship UpdateDynamicRelationship(RelationshipTracker.DynamicRelationship dRelation)
         {
@@ -210,6 +224,13 @@ namespace thelost
             return new PathCost(cost.resistance + base.threatTracker.ThreatOfTile(coord.destinationCoord, true) * 100f, cost.legality);
         }
         public float currentUtility;
+        public List<WorldCoordinate> fruitSeenInCurrentRoom = new List<WorldCoordinate>();
+        public override void NewRoom(Room room)
+        {
+            base.NewRoom(room);
+            fruitSeenInCurrentRoom.Clear();
+        }
+
         public override void Update()
         {
             base.Update();
@@ -239,28 +260,8 @@ namespace thelost
             }
             if (this.behavior == Behavior.Idle)
             {
-              /*  List<WorldCoordinate> fruit = new List<WorldCoordinate>();
-                for(int j = 0;j< this.squab.room.physicalObjects[0].Count; j++)
-                {
-                    PhysicalObject items = this.squab.room.physicalObjects[0][j];
-                    if (items is DangleFruit)
-                    {
-                        for (int i = items.abstractPhysicalObject.pos.y; i > 0; i--)
-                        {
-                            if(this.squab.room.GetTile(new Vector2(items.abstractPhysicalObject.pos.x, i)).Solid)
-                            {
-                                if (base.pathFinder.CoordinateReachableAndGetbackable(this.squab.room.GetWorldCoordinate(new IntVector2(items.abstractPhysicalObject.pos.x, i)))){
-                                    fruit.Add(this.squab.room.GetWorldCoordinate(new IntVector2(items.abstractPhysicalObject.pos.x, i)));
-                                }
-                            }
-                        }
-                    }
-                }
-                if(fruit.Count > 0)
-                {
-                    int chosenfruit = Random.Range(0,fruit.Count);
-                    this.creature.abstractAI.SetDestination(fruit[chosenfruit]);
-                }*/
+               
+               
                 if (!base.pathFinder.CoordinateReachableAndGetbackable(base.pathFinder.GetDestination))
                 {
                     this.creature.abstractAI.SetDestination(this.creature.pos);
@@ -331,6 +332,12 @@ namespace thelost
             return base.rainTracker.Utility() > 0.01f;
         }
 
+        public RelationshipTracker.TrackedCreatureState CreateTrackedCreatureState(RelationshipTracker.DynamicRelationship rel)
+        {
+            return new RelationshipTracker.TrackedCreatureState();
+        }
+
+
     }
 
     internal class SquabState : HealthState
@@ -388,7 +395,7 @@ namespace thelost
         }
         int specialMoveCounter;
         IntVector2 specialMoveDestination;
-        float runSpeed = 2f;
+        float runSpeed = 1f;
         private void MoveTowards(Vector2 moveTo)
         {
             Vector2 vector = Custom.DirVec(base.mainBodyChunk.pos, moveTo);
@@ -510,15 +517,9 @@ namespace thelost
 
         public override Color ShortCutColor()
         {
-            try
-            {
-                return this.ivars.basecolor.rgb;
-            }
-            catch(Exception e)
-            {
-                Debug.Log(":[");
+
+
                 return new(0f, 0.5f, 1f);
-            }
         }
         public struct IndividualVariations
         {
@@ -573,6 +574,15 @@ namespace thelost
             base.graphicsModule.Reset();
         }
 
+        public void omnomnom(bool eu)
+        {
+            if (IsEdible(grasps[0].grabbed))
+            {
+                (base.grasps[0].grabbed as IPlayerEdible).BitByPlayer(base.grasps[0], eu);
+                return;
+            }
+        }
+
         public override void Update(bool eu)
         {
             if(this.room.game.devToolsActive && Input.GetKey(bringMyLittleBoy))
@@ -609,16 +619,16 @@ namespace thelost
                     bodyChunk.vel.y = bodyChunk.vel.y + base.gravity;
                 }
             }
-            if (base.Consious && !this.Footing && this.ai.behavior == SquabAI.Behavior.Flee && !base.safariControlled)
-            {
-                for (int j = 0; j < 2; j++)
-                {
-                    if (this.room.aimap.TileAccessibleToCreature(this.room.GetTilePosition(base.bodyChunks[j].pos), base.Template))
-                    {
-                        base.bodyChunks[j].vel += Custom.DegToVec(Random.value * 360f) * Random.value * 5f;
-                    }
-                }
-            }
+            //if (base.Consious && !this.Footing && this.ai.behavior == SquabAI.Behavior.Flee && !base.safariControlled)
+            //{
+            //    for (int j = 0; j < 2; j++)
+            //    {
+            //        if (this.room.aimap.TileAccessibleToCreature(this.room.GetTilePosition(base.bodyChunks[j].pos), base.Template))
+            //        {
+            //            base.bodyChunks[j].vel += Custom.DegToVec(Random.value * 360f) * Random.value * 5f;
+            //        }
+            //    }
+            //}
         }
        public float runCycle = 2f;
         private int outOfWaterFooting;
@@ -669,11 +679,10 @@ namespace thelost
             {
                 return;
             }
-            Color fuckyou = new Color(1f, 1f, 0f);
-            sLeaser.sprites[0].color = fuckyou;
-            sLeaser.sprites[1].color = fuckyou;
-            sLeaser.sprites[2].color = fuckyou;
-            sLeaser.sprites[3].color = fuckyou;
+            sLeaser.sprites[0].color = new Color(1f, 0f, 0f);
+            sLeaser.sprites[1].color = new Color(0f, 1f, 0f);
+            sLeaser.sprites[2].color = new Color(0f, 0f, 1f);
+            sLeaser.sprites[3].color = new Color(1f, 1f, 0f);
 
             Vector2 headchunkpos = Vector2.Lerp(this.squab.bodyChunks[1].lastPos, this.squab.bodyChunks[1].pos, timeStacker);
             Vector2 bodychunkpos = Vector2.Lerp(this.squab.bodyChunks[0].lastPos, this.squab.bodyChunks[0].pos, timeStacker);
@@ -698,7 +707,7 @@ namespace thelost
             sLeaser.sprites[0] = new FSprite("Circle20"); //chunky body
             sLeaser.sprites[1] = new FSprite("Circle4"); //head
             sLeaser.sprites[2] = new FSprite("Circle4"); //tail bud
-            sLeaser.sprites[3] = new FSprite("LizardArm_13"); //leggy. only using 1 for now
+            sLeaser.sprites[3] = new FSprite("Circle4"); //leggy. only using 1 for now
             //sLeaser.sprites[4] = new FSprite("LizardArm_13"; //this is the other leggy.
             AddToContainer(sLeaser, rCam, null);
             base.InitiateSprites(sLeaser, rCam);
