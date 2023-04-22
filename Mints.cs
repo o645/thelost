@@ -68,7 +68,7 @@ namespace thelost
             Icon = new SimpleIcon("Kill_Black_Lizard", new Color(0.7254f, 1f, 0.9176f));
 
             LoadedPerformanceCost = 100f;
-            SandboxPerformanceCost = new SandboxPerformanceCost(0.5f, 0.5f);
+            SandboxPerformanceCost = new SandboxPerformanceCost(0.5f, 0.2f);
             RegisterUnlock(KillScore.Configurable(6), SandboxUnlockID.MintLiz);
             minthooks.ApplyMyHooks();
             
@@ -114,6 +114,7 @@ namespace thelost
         public override CreatureTemplate CreateTemplate()
         {
             return LizardBreeds.BreedTemplate(Type, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate), null, null, null);
+
         }
 
         public override void EstablishRelationships()

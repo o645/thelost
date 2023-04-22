@@ -379,7 +379,7 @@ namespace thelost
             {
                 self.AddModule(new PreyTracker(self, 3, 2f, 10f, 70f, 0.5f));
                 self.utilityComparer.AddComparedModule(self.preyTracker, null, 1f, 1.5f);
-                self.AddModule(new StuckTracker(self, true, false));
+                self.AddModule(new StuckTracker(self,true,false));
             }
             
         }

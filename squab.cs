@@ -86,8 +86,10 @@ namespace thelost
                     Base = 0.6f,
                 },
                 
+                
             }.IntoTemplate();
             t.offScreenSpeed = 0.4f;
+            
             t.abstractedLaziness = 100;
             t.roamBetweenRoomsChance = 0.5f;
             t.bodySize = 0.3f;
@@ -639,6 +641,7 @@ namespace thelost
         public BodyPart head;
         public BodyPart tail;
         public Limb[] limbs;
+        public TriangleMesh neckMesh;
 
         public Squabgraphics(Squab squab) : base(squab,false)
         {
@@ -653,6 +656,7 @@ namespace thelost
             bodyParts[1] = limbs[1];
             bodyParts[2] = this.head;
             bodyParts[3] = this.tail;
+            
             Reset();
 
         }
@@ -705,7 +709,13 @@ namespace thelost
             //when i actually make the custom sprites there will be an extra sprite for the gradient.
             //plus ill add on the googly eyes.
             sLeaser.sprites[0] = new FSprite("Circle20"); //chunky body
-            sLeaser.sprites[1] = new FSprite("Circle4"); //head
+            sLeaser.sprites[1] = new FSprite("MouseHead0"); //head
+            //temporarily using placeholder sprites for testing head direction
+            if(Mathf.Abs(head.vel.x) > 0.5f)
+            {
+                sLeaser.sprites[1] = new FSprite("mouseHead2");
+                sLeaser.sprites[1].scaleX = (head.vel.x < 0 ? -1 : 1);
+            }
             sLeaser.sprites[2] = new FSprite("Circle4"); //tail bud
             sLeaser.sprites[3] = new FSprite("Circle4"); //leggy. only using 1 for now
             //sLeaser.sprites[4] = new FSprite("LizardArm_13"; //this is the other leggy.
@@ -723,7 +733,7 @@ namespace thelost
             head.Update();
             this.head.lastPos = this.head.pos;
             this.head.pos += this.head.vel;
-            Vector2 vector = this.squab.mainBodyChunk.pos + Custom.DirVec(this.squab.bodyChunks[1].pos, this.squab.mainBodyChunk.pos);
+            Vector2 vector = this.squab.mainBodyChunk.pos + Custom.DirVec(this.squab.bodyChunks[1].pos, this.squab.mainBodyChunk.pos) * new Vector2(1,1);
             this.head.ConnectToPoint(vector, 4f, false, 0f, this.squab.mainBodyChunk.vel, 0.5f, 0.1f);
             this.head.vel += (vector - this.head.pos) / 6f;
             tail.Update();
